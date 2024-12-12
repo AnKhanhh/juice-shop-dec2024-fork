@@ -11,14 +11,13 @@ import { UserModel } from '../models/user'
 import challengeUtils = require('../lib/challengeUtils')
 import config from 'config'
 import { challenges } from '../data/datacache'
-
+import { QueryTypes } from 'sequelize'
 import * as utils from '../lib/utils'
 const security = require('../lib/insecurity')
 const users = require('../data/datacache').users
 
-// vuln-code-snippet start loginAdminChallenge loginBenderChallenge loginJimChallenge
-module.exports = function login () {
-  function afterLogin (user: { data: User, bid: number }, res: Response, next: NextFunction) {
+module.exports = function login (){
+  function afterLogin (user: { data: User, bid: number }, res: Response, next: NextFunction){
     verifyPostLoginChallenges(user) // vuln-code-snippet hide-line
     BasketModel.findOrCreate({ where: { UserId: user.data.id } })
       .then(([basket]: [BasketModel, boolean]) => {
@@ -33,29 +32,39 @@ module.exports = function login () {
 
   return (req: Request, res: Response, next: NextFunction) => {
     verifyPreLoginChallenges(req) // vuln-code-snippet hide-line
-    models.sequelize.query(`SELECT * FROM Users WHERE email = '${req.body.email || ''}' AND password = '${security.hash(req.body.password || '')}' AND deletedAt IS NULL`, { model: UserModel, plain: true }) // vuln-code-snippet vuln-line loginAdminChallenge loginBenderChallenge loginJimChallenge
-      .then((authenticatedUser) => { // vuln-code-snippet neutral-line loginAdminChallenge loginBenderChallenge loginJimChallenge
-        const user = utils.queryResultToJson(authenticatedUser)
-        if (user.data?.id && user.data.totpSecret !== '') {
-          res.status(401).json({
-            status: 'totp_token_required',
-            data: {
-              tmpToken: security.authorize({
-                userId: user.data.id,
-                type: 'password_valid_needs_second_factor_token'
-              })
-            }
-          })
-        } else if (user.data?.id) {
-          // @ts-expect-error FIXME some properties missing in user - vuln-code-snippet hide-line
-          afterLogin(user, res, next)
-        } else {
-          res.status(401).send(res.__('Invalid email or password.'))
-        }
-      }).catch((error: Error) => {
-        next(error)
-      })
+    models.sequelize.query(
+      'SELECT * FROM Users WHERE email = ? AND password = ? AND deletedAt IS NULL',
+      {
+        replacements: [
+          req.body.email,
+          security.hash(req.body.password)
+        ],
+        type: QueryTypes.SELECT,
+        model: UserModel,
+        plain: true
+      }).then((authenticatedUser) => {
+      const user = utils.queryResultToJson(authenticatedUser)
+      if (user.data?.id && user.data.totpSecret !== '') {
+        res.status(401).json({
+          status: 'totp_token_required',
+          data: {
+            tmpToken: security.authorize({
+              userId: user.data.id,
+              type: 'password_valid_needs_second_factor_token'
+            })
+          }
+        })
+      } else if (user.data?.id) {
+        // @ts-expect-error FIXME some properties missing in user - vuln-code-snippet hide-line
+        afterLogin(user, res, next)
+      } else {
+        res.status(401).send(res.__('Invalid email or password.'))
+      }
+    }).catch((error: Error) => {
+      next(error)
+    })
   }
+
   // vuln-code-snippet end loginAdminChallenge loginBenderChallenge loginJimChallenge
 
   function verifyPreLoginChallenges (req: Request) {
