@@ -139,7 +139,7 @@ const startupGauge = new Prometheus.Gauge({
 // Wraps the function and measures its (async) execution time
 const collectDurationPromise = (name: string, func: (...args: any) => Promise<any>) => {
   return async (...args: any) => {
-    const end = startupGauge.startTimer({ task: name })
+    const end = startupGauge.startTimer({task: name})
     try {
       const res = await func(...args)
       end()
@@ -233,11 +233,11 @@ restoreOverwrittenFilesWithOriginals().then(() => {
   const serveIndexMiddleware = (req: Request, res: Response, next: NextFunction) => {
     const origEnd = res.end
     // @ts-expect-error FIXME assignment broken due to seemingly void return value
-    res.end = function () {
+    res.end = function (){
       if (arguments.length) {
         const reqPath = req.originalUrl.replace(/\?.*$/, '')
         const currentFolder = reqPath.split('/').pop() as string
-        arguments[0] = arguments[0].replace(/a href="([^"]+?)"/gi, function (matchString: string, matchedUrl: string) {
+        arguments[0] = arguments[0].replace(/a href="([^"]+?)"/gi, function (matchString: string, matchedUrl: string){
           let relativePath = path.relative(reqPath, matchedUrl)
           if (relativePath === '') {
             relativePath = currentFolder
@@ -257,7 +257,7 @@ restoreOverwrittenFilesWithOriginals().then(() => {
 
   // vuln-code-snippet start directoryListingChallenge accessLogDisclosureChallenge
   /* /ftp directory browsing and file download */ // vuln-code-snippet neutral-line directoryListingChallenge
-  app.use('/ftp', serveIndexMiddleware, serveIndex('ftp', { icons: true })) // vuln-code-snippet vuln-line directoryListingChallenge
+  app.use('/ftp', serveIndexMiddleware, serveIndex('ftp', {icons: true})) // vuln-code-snippet vuln-line directoryListingChallenge
   app.use('/ftp(?!/quarantine)/:file', fileServer()) // vuln-code-snippet vuln-line directoryListingChallenge
   app.use('/ftp/quarantine/:file', quarantineServer()) // vuln-code-snippet neutral-line directoryListingChallenge
 
@@ -290,15 +290,15 @@ restoreOverwrittenFilesWithOriginals().then(() => {
   })
   app.use(i18n.init)
 
-  app.use(bodyParser.urlencoded({ extended: true }))
+  app.use(bodyParser.urlencoded({extended: true}))
   /* File Upload */
   app.post('/file-upload', uploadToMemory.single('file'), ensureFileIsPassed, metrics.observeFileUploadMetricsMiddleware(), handleZipFileUpload, checkUploadSize, checkFileType, handleXmlUpload)
   app.post('/profile/image/file', uploadToMemory.single('file'), ensureFileIsPassed, metrics.observeFileUploadMetricsMiddleware(), profileImageFileUpload())
   app.post('/profile/image/url', uploadToMemory.single('file'), profileImageUrlUpload())
   app.post('/rest/memories', uploadToDisk.single('image'), ensureFileIsPassed, security.appendUserId(), metrics.observeFileUploadMetricsMiddleware(), memory.addMemory())
 
-  app.use(bodyParser.text({ type: '*/*' }))
-  app.use(function jsonParser (req: Request, res: Response, next: NextFunction) {
+  app.use(bodyParser.text({type: '*/*'}))
+  app.use(function jsonParser (req: Request, res: Response, next: NextFunction){
     // @ts-expect-error FIXME intentionally saving original request in this property
     req.rawBody = req.body
     if (req.headers['content-type']?.includes('application/json')) {
@@ -319,7 +319,7 @@ restoreOverwrittenFilesWithOriginals().then(() => {
     verbose: false,
     max_logs: '2d'
   })
-  app.use(morgan('combined', { stream: accessLogStream }))
+  app.use(morgan('combined', {stream: accessLogStream}))
 
   // vuln-code-snippet start resetPasswordMortyChallenge
   /* Rate limiting */
@@ -406,7 +406,7 @@ restoreOverwrittenFilesWithOriginals().then(() => {
   /* Accounting users are allowed to check and update quantities */
   app.delete('/api/Quantitys/:id', security.denyAll())
   app.post('/api/Quantitys', security.denyAll())
-  app.use('/api/Quantitys/:id', security.isAccounting(), ipfilter(['123.456.789'], { mode: 'allow' }))
+  app.use('/api/Quantitys/:id', security.isAccounting(), ipfilter(['123.456.789'], {mode: 'allow'}))
   /* Feedbacks: Do not allow changes of existing feedback */
   app.put('/api/Feedbacks/:id', security.denyAll())
   /* PrivacyRequests: Only allowed for authenticated users */
@@ -483,14 +483,14 @@ restoreOverwrittenFilesWithOriginals().then(() => {
     })
 
     // create a wallet when a new user is registered using API
-    if (name === 'User') { // vuln-code-snippet neutral-line registerAdminChallenge
+    if (name === 'User') {
       resource.create.send.before((req: Request, res: Response, context: { instance: { id: any }, continue: any }) => { // vuln-code-snippet vuln-line registerAdminChallenge
-        WalletModel.create({ UserId: context.instance.id }).catch((err: unknown) => {
+        WalletModel.create({UserId: context.instance.id}).catch((err: unknown) => {
           console.log(err)
         })
-        return context.continue // vuln-code-snippet neutral-line registerAdminChallenge
-      }) // vuln-code-snippet neutral-line registerAdminChallenge
-    } // vuln-code-snippet neutral-line registerAdminChallenge
+        return context.continue
+      })
+    }
     // vuln-code-snippet end registerAdminChallenge
 
     // translate challenge descriptions and hints on-the-fly
@@ -543,7 +543,10 @@ restoreOverwrittenFilesWithOriginals().then(() => {
         }
         return context.continue
       })
-      resource.read.send.before((req: Request, res: Response, context: { instance: { name: string, description: string }, continue: any }) => {
+      resource.read.send.before((req: Request, res: Response, context: {
+        instance: { name: string, description: string },
+        continue: any
+      }) => {
         context.instance.name = req.__(context.instance.name)
         context.instance.description = req.__(context.instance.description)
         return context.continue
@@ -551,7 +554,10 @@ restoreOverwrittenFilesWithOriginals().then(() => {
     }
 
     // fix the api difference between finale (fka epilogue) and previously used sequlize-restful
-    resource.all.send.before((req: Request, res: Response, context: { instance: { status: string, data: any }, continue: any }) => {
+    resource.all.send.before((req: Request, res: Response, context: {
+      instance: { status: string, data: any },
+      continue: any
+    }) => {
       context.instance = {
         status: 'success',
         data: context.instance
@@ -691,9 +697,9 @@ const Metrics = metrics.observeMetrics() // vuln-code-snippet neutral-line expos
 app.get('/metrics', metrics.serveMetrics()) // vuln-code-snippet vuln-line exposedMetricsChallenge
 errorhandler.title = `${config.get<string>('application.name')} (Express ${utils.version('express')})`
 
-export async function start (readyCallback?: () => void) {
-  const datacreatorEnd = startupGauge.startTimer({ task: 'datacreator' })
-  await sequelize.sync({ force: true })
+export async function start (readyCallback?: () => void){
+  const datacreatorEnd = startupGauge.startTimer({task: 'datacreator'})
+  await sequelize.sync({force: true})
   await datacreator()
   datacreatorEnd()
   const port = process.env.PORT ?? config.get('server.port')
@@ -703,7 +709,7 @@ export async function start (readyCallback?: () => void) {
 
   server.listen(port, () => {
     logger.info(colors.cyan(`Server listening on port ${colors.bold(`${port}`)}`))
-    startupGauge.set({ task: 'ready' }, (Date.now() - startTime) / 1000)
+    startupGauge.set({task: 'ready'}, ( Date.now() - startTime ) / 1000)
     if (process.env.BASE_PATH !== '') {
       logger.info(colors.cyan(`Server using proxy base path ${colors.bold(`${process.env.BASE_PATH}`)} for redirects`))
     }
@@ -717,7 +723,7 @@ export async function start (readyCallback?: () => void) {
   void collectDurationPromise('customizeEasterEgg', customizeEasterEgg)() // vuln-code-snippet hide-line
 }
 
-export function close (exitCode: number | undefined) {
+export function close (exitCode: number | undefined){
   if (server) {
     clearInterval(metricsUpdateLoop)
     server.close()
@@ -726,8 +732,13 @@ export function close (exitCode: number | undefined) {
     process.exit(exitCode)
   }
 }
+
 // vuln-code-snippet end exposedMetricsChallenge
 
 // stop server on sigint or sigterm signals
-process.on('SIGINT', () => { close(0) })
-process.on('SIGTERM', () => { close(0) })
+process.on('SIGINT', () => {
+  close(0)
+})
+process.on('SIGTERM', () => {
+  close(0)
+})
