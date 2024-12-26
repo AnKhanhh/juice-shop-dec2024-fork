@@ -9,7 +9,11 @@
 
 export const environment = {
   production: false,
-  hostServer: 'http://localhost:3000'
+  hostServer: 'http://localhost:3000',
+  oauth: {
+    strictSSL: false,
+    allowInsecureProxy: true
+  }
 }
 
 /*
