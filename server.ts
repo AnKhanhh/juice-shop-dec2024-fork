@@ -474,7 +474,12 @@ restoreOverwrittenFilesWithOriginals().then(() => {
     { name: 'Quantity', exclude: [], model: QuantityModel }
   ]
 
-  for (const { name, exclude, model } of autoModels) {
+  // generate CRUD endpoints for all models in autoModels
+  for (const {
+    name,
+    exclude,
+    model
+  } of autoModels) {
     const resource = finale.resource({
       model,
       endpoints: [`/api/${name}s`, `/api/${name}s/:id`],
@@ -484,8 +489,8 @@ restoreOverwrittenFilesWithOriginals().then(() => {
 
     // create a wallet when a new user is registered using API
     if (name === 'User') {
-      resource.create.send.before((req: Request, res: Response, context: { instance: { id: any }, continue: any }) => { // vuln-code-snippet vuln-line registerAdminChallenge
-        WalletModel.create({UserId: context.instance.id}).catch((err: unknown) => {
+      resource.create.send.before((req: Request, res: Response, context: { instance: { id: any }, continue: any }) => {
+        WalletModel.create({ UserId: context.instance.id }).catch((err: unknown) => {
           console.log(err)
         })
         return context.continue
@@ -511,7 +516,10 @@ restoreOverwrittenFilesWithOriginals().then(() => {
         }
         return context.continue
       })
-      resource.read.send.before((req: Request, res: Response, context: { instance: { description: string, hint: string }, continue: any }) => {
+      resource.read.send.before((req: Request, res: Response, context: {
+        instance: { description: string, hint: string },
+        continue: any
+      }) => {
         context.instance.description = req.__(context.instance.description)
         if (context.instance.hint) {
           context.instance.hint = req.__(context.instance.hint)
@@ -528,7 +536,10 @@ restoreOverwrittenFilesWithOriginals().then(() => {
         }
         return context.continue
       })
-      resource.read.send.before((req: Request, res: Response, context: { instance: { question: string }, continue: any }) => {
+      resource.read.send.before((req: Request, res: Response, context: {
+        instance: { question: string },
+        continue: any
+      }) => {
         context.instance.question = req.__(context.instance.question)
         return context.continue
       })
