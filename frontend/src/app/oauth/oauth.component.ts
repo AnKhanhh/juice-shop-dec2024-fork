@@ -19,32 +19,26 @@ export class OAuthComponent implements OnInit {
   }
 
   ngOnInit (){
-    this.userService.oauthLogin(this.parseRedirectUrlParams().access_token).subscribe((profile: any) => {
-      const password = btoa(profile.email.split('').reverse().join(''))
-      this.userService.save({
-        email: profile.email,
-        password,
-        passwordRepeat: password
-      }).subscribe(() => {
+    this.userService.oauthLogin(this.parseRedirectUrlParams().access_token).subscribe(
+      (profile) => {
+        // profile now contains both email and password from backend
         this.login(profile)
-      }, () => {
-        this.login(profile)
+      },(error) => {
+        this.invalidateSession(error)
+        this.ngZone.run(async () => await this.router.navigate(['/login']))
       })
-    }, (error) => {
-      this.invalidateSession(error)
-      this.ngZone.run(async () => await this.router.navigate(['/login']))
-    })
   }
 
   login (profile: any){
     this.userService.login({
       email: profile.email,
-      password: btoa(profile.email.split('').reverse().join('')),
+      // Use password from backend
+      password: profile.password,
       oauth: true
     }).subscribe((authentication) => {
       const expires = new Date()
       expires.setHours(expires.getHours() + 8)
-      this.cookieService.put('token', authentication.token, {expires})
+      this.cookieService.put('token', authentication.token, { expires })
       localStorage.setItem('token', authentication.token)
       sessionStorage.setItem('bid', authentication.bid)
       this.userService.isLoggedIn.next(true)

@@ -454,6 +454,36 @@ restoreOverwrittenFilesWithOriginals().then(() => {
   /* Verifying DB related challenges can be postponed until the next request for challenges is coming via finale */
   app.use(verify.databaseRelatedChallenges())
 
+  app.post('/api/oauth/google', async (req: Request, res: Response) => {
+    try {
+      const googleResponse = await fetch(
+        `https://www.googleapis.com/oauth2/v1/userinfo?alt=json&access_token=${req.body.access_token}`
+      )
+      const profile = await googleResponse.json()
+
+      const password = Buffer.from(profile.email.split('').reverse().join('')).toString('base64')
+
+      // Since we're on the same server, we can use a relative path
+      const registrationResponse = await fetch('http://localhost:3000/api/Users', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          email: profile.email,
+          password: password,
+          passwordRepeat: password
+        })
+      })
+
+      const userData = await registrationResponse.json()
+      res.json({ email: profile.email })
+
+    } catch (error) {
+      res.status(500).json({ error: 'Registration failed' })
+    }
+  })
+
   // vuln-code-snippet start registerAdminChallenge
   /* Generated API endpoints */
   finale.initialize({ app, sequelize })
