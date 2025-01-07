@@ -257,7 +257,7 @@ restoreOverwrittenFilesWithOriginals().then(() => {
 
   // vuln-code-snippet start directoryListingChallenge accessLogDisclosureChallenge
   /* /ftp directory browsing and file download */ // vuln-code-snippet neutral-line directoryListingChallenge
-  app.use('/ftp', serveIndexMiddleware, serveIndex('ftp', {icons: true})) // vuln-code-snippet vuln-line directoryListingChallenge
+  app.use('/ftp', serveIndexMiddleware, serveIndex('ftp', { icons: true })) // vuln-code-snippet vuln-line directoryListingChallenge
   app.use('/ftp(?!/quarantine)/:file', fileServer()) // vuln-code-snippet vuln-line directoryListingChallenge
   app.use('/ftp/quarantine/:file', quarantineServer()) // vuln-code-snippet neutral-line directoryListingChallenge
 
@@ -463,7 +463,7 @@ restoreOverwrittenFilesWithOriginals().then(() => {
 
       const password = Buffer.from(profile.email.split('').reverse().join('')).toString('base64')
 
-      // Since we're on the same server, we can use a relative path
+      // B2B registration
       const registrationResponse = await fetch('http://localhost:3000/api/Users', {
         method: 'POST',
         headers: {
@@ -471,16 +471,28 @@ restoreOverwrittenFilesWithOriginals().then(() => {
         },
         body: JSON.stringify({
           email: profile.email,
-          password: password,
-          passwordRepeat: password
+          password
         })
       })
+      await registrationResponse.json()
 
-      const userData = await registrationResponse.json()
-      res.json({ email: profile.email })
-
+      // B2B login
+      const loginResponse = await fetch('http://localhost:3000/rest/user/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          email: profile.email,
+          password,
+          oauth: true
+        })
+      })
+      const loginData = await loginResponse.json()
+      // Send authentication data back
+      res.json(loginData.authentication)
     } catch (error) {
-      res.status(500).json({ error: 'Registration failed' })
+      res.status(500).json({ error: 'Authentication failed' })
     }
   })
 

@@ -80,7 +80,6 @@ export class UserService {
   }
 
   oauthLogin (accessToken: string){
-    // return this.http.get('https://www.googleapis.com/oauth2/v1/userinfo?alt=json&access_token=' + accessToken)
     // Instead of calling Google API, pass token to backend API
     return this.http.post('/api/oauth/google', {
       access_token: accessToken

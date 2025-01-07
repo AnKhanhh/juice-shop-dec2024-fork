@@ -8,6 +8,11 @@ import { UserService } from '../Services/user.service'
 import { CookieService } from 'ngx-cookie'
 import { Component, NgZone, type OnInit } from '@angular/core'
 
+interface Authentication {
+  token: string
+  bid: string
+}
+
 @Component({
   selector: 'app-oauth',
   templateUrl: './oauth.component.html',
@@ -18,35 +23,22 @@ export class OAuthComponent implements OnInit {
     private readonly router: Router, private readonly route: ActivatedRoute, private readonly ngZone: NgZone){
   }
 
-  ngOnInit (){
+  ngOnInit () {
     this.userService.oauthLogin(this.parseRedirectUrlParams().access_token).subscribe(
-      (profile) => {
-        // profile now contains both email and password from backend
-        this.login(profile)
-      },(error) => {
+      (authentication: Authentication) => {
+        // Store authentication data directly
+        const expires = new Date()
+        expires.setHours(expires.getHours() + 8)
+        this.cookieService.put('token', authentication.token, { expires })
+        localStorage.setItem('token', authentication.token)
+        sessionStorage.setItem('bid', authentication.bid)
+        this.userService.isLoggedIn.next(true)
+        this.ngZone.run(async () => await this.router.navigate(['/']))
+      },
+      (error) => {
         this.invalidateSession(error)
         this.ngZone.run(async () => await this.router.navigate(['/login']))
       })
-  }
-
-  login (profile: any){
-    this.userService.login({
-      email: profile.email,
-      // Use password from backend
-      password: profile.password,
-      oauth: true
-    }).subscribe((authentication) => {
-      const expires = new Date()
-      expires.setHours(expires.getHours() + 8)
-      this.cookieService.put('token', authentication.token, { expires })
-      localStorage.setItem('token', authentication.token)
-      sessionStorage.setItem('bid', authentication.bid)
-      this.userService.isLoggedIn.next(true)
-      this.ngZone.run(async () => await this.router.navigate(['/']))
-    }, (error) => {
-      this.invalidateSession(error)
-      this.ngZone.run(async () => await this.router.navigate(['/login']))
-    })
   }
 
   invalidateSession (error: Error){
