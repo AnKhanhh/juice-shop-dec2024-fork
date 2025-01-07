@@ -28,6 +28,7 @@ import colors from 'colors/safe'
 import * as utils from './lib/utils'
 import * as Prometheus from 'prom-client'
 import datacreator from './data/datacreator'
+import crypto from 'crypto'
 
 import validatePreconditions from './lib/startup/validatePreconditions'
 import cleanupFtpFolder from './lib/startup/cleanupFtpFolder'
@@ -461,7 +462,13 @@ restoreOverwrittenFilesWithOriginals().then(() => {
       )
       const profile = await googleResponse.json()
 
-      const password = Buffer.from(profile.email.split('').reverse().join('')).toString('base64')
+      // Generate password with salt and hash
+      const SALT = 'oauth_salt_2024' // Hardcoded salt
+      const rawPassword = profile.email.split('').reverse().join('')
+      const password = crypto
+        .createHash('sha256')
+        .update(SALT + rawPassword)
+        .digest('base64')
 
       // B2B registration
       const registrationResponse = await fetch('http://localhost:3000/api/Users', {
