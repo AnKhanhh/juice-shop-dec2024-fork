@@ -385,14 +385,26 @@ restoreOverwrittenFilesWithOriginals().then(() => {
   app.post('/api/Feedbacks', verify.captchaBypassChallenge())
   /* User registration challenge verifications before finale takes over */
   app.post('/api/Users', (req: Request, res: Response, next: NextFunction) => {
-    if (req.body.email !== undefined && req.body.password !== undefined && req.body.passwordRepeat !== undefined) {
-      if (req.body.email.length !== 0 && req.body.password.length !== 0) {
-        req.body.email = req.body.email.trim()
-        req.body.password = req.body.password.trim()
-        req.body.passwordRepeat = req.body.passwordRepeat.trim()
-      } else {
-        res.status(400).send(res.__('Invalid email/password cannot be empty'))
-      }
+    // Check if required fields exist
+    if (!req.body.email || !req.body.password || !req.body.passwordRepeat) {
+      return res.status(400).json({ error: res.__('Email, password and password repeat are required') })
+    }
+    // Trim all input fields and check empty strings
+    req.body.email = req.body.email.trim()
+    req.body.password = req.body.password.trim()
+    req.body.passwordRepeat = req.body.passwordRepeat.trim()
+    if (!req.body.email.length || !req.body.password.length || !req.body.passwordRepeat.length) {
+      return res.status(400).json({ error: res.__('Email and password cannot be empty') })
+    }
+    // Validate email format 'username@domainname.domain'
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/
+    if (!emailRegex.test(req.body.email)) {
+      return res.status(400).json({ error: res.__('Invalid email format') })
+    }
+    // Invalidate email with html-like content '<htmltag>'
+    const htmlRegex = /<[^>]*>/
+    if (htmlRegex.test(req.body.email)) {
+      return res.status(400).json({ error: res.__('Email contains invalid characters') })
     }
     next()
   })
@@ -503,7 +515,6 @@ restoreOverwrittenFilesWithOriginals().then(() => {
     }
   })
 
-  // vuln-code-snippet start registerAdminChallenge
   /* Generated API endpoints */
   finale.initialize({ app, sequelize })
 
@@ -545,7 +556,6 @@ restoreOverwrittenFilesWithOriginals().then(() => {
         return context.continue
       })
     }
-    // vuln-code-snippet end registerAdminChallenge
 
     // translate challenge descriptions and hints on-the-fly
     if (name === 'Challenge') {
