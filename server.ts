@@ -356,7 +356,15 @@ restoreOverwrittenFilesWithOriginals().then(() => {
   app.use('/api/Challenges/:id', security.denyAll())
   /* Complaints: POST and GET allowed when logged in only */
   app.get('/api/Complaints', security.isAuthorized())
-  app.post('/api/Complaints', security.isAuthorized())
+  app.post('/api/Complaints',
+    (req: any, res: any, next: () => void) => {
+      next()
+    },
+    security.isAuthorized(),
+    (req: any, res: any, next: () => void) => {
+      next()
+    }
+  )
   app.use('/api/Complaints/:id', security.denyAll())
   /* Recycles: POST and GET allowed when logged in only */
   app.get('/api/Recycles', recycles.blockRecycleItems())

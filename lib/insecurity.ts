@@ -51,7 +51,38 @@ export const cutOffPoisonNullByte = (str: string) => {
   return str
 }
 
-export const isAuthorized = () => expressJwt(({ secret: publicKey }) as any)
+export const isAuthorized = () => {
+  return [
+    (req: any, res: any, next: any) => {
+      // Manual check for token signature
+      const authHeader = req.headers.authorization
+      if (authHeader?.startsWith('Bearer ')) {
+        const token = authHeader.split(' ')[1]
+        const parts = token.split('.')
+
+        // Check if token has all three parts (header.payload.signature)
+        if (parts.length !== 3) {
+          return res.status(401).json({ error: 'Invalid token structure' })
+        }
+
+        // Check if signature part is not empty
+        if (!parts[2]) {
+          return res.status(401).json({ error: 'Unsigned token not allowed' })
+        }
+      }
+      next()
+    },
+
+    expressJwt(({ secret: publicKey }) as any),
+
+    (err: any, req: any, res: any, next: any) => {
+      if (err.name === 'UnauthorizedError') {
+        return res.status(401).json({ error: 'Invalid token' })
+      }
+      next(err)
+    }
+  ]
+}
 export const denyAll = () => expressJwt({ secret: '' + Math.random() } as any)
 export const authorize = (user = {}) => jwt.sign(user, privateKey, { expiresIn: '6h', algorithm: 'RS256' })
 export const verify = (token: string) => token ? (jws.verify as ((token: string, secret: string) => boolean))(token, publicKey) : false
